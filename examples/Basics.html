@@ -1,0 +1,122 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example1</title>
+    <!-- AI Foundry Library -->
+    <script src="../AI_Foundry_Library.js"></script>
+    <!-- ConvoScript Library -->
+    <script src="../ConvoScript_Library.js"></script>
+    <!-- PicoCSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+</head>
+
+<body>
+    <header>
+        <button onclick="start()">start</button>
+    </header>
+    <main class="container">
+        <div id="placeResults"></div>
+        <progress hidden id="load"></progress>
+        <input id="input" type="hidden"></input>
+        <button hidden id="btn"></button>
+    </main>
+
+    <script>
+        const api_token = "df-abc123...=";
+
+        //Create array Manager
+        const manager = new cs.ArrayManager()
+
+        function start() {
+            //Remove arrays as they may have changed in a previous run
+            manager.arrays = {}
+
+            //Add array to array registry
+            script1 = manager.addArray('script1', [
+                { //First message in conversation
+                    role: 'Assistant',
+                    content: 'Hi, tell me about a recent dream you had!'
+                },
+                { //Allow the user to respond
+                    role: 'User',
+                    content: { type: 'text', content: 'input' }
+                },
+                { //Create AI response based on the first two messages (text-to-text)
+                    role: 'function',
+                    content: 'textToText',
+                    messages: '${script1.slice(0,2)}'
+                },
+                { //Create a scripted user message
+                    role: 'User',
+                    content: 'Can you create an image based on my dream?'
+                },
+                { //Generate image based on user input in the beginning of the conversation
+                    role: 'function',
+                    content: 'textToImage',
+                    prompt: '${script1[1].content}'
+                },
+                {
+                    role: 'Assistant',
+                    content: 'Should we re-do this image?'
+                },
+                {
+                    role: 'User',
+                    content: { content: 'input', type: 'text' }
+                },
+                {
+                    role: 'condition',
+                    content: '${!script1[6].content.toUpperCase().includes("NO")}',
+                    true: 'script2',
+                    false: 'script3'
+                },
+
+            ])
+
+            script2 = manager.addArray('script2', [
+                {
+                    role: 'Function',
+                    content: 'textToImage',
+                    prompt: '${script1[1].content}'
+                },
+                {
+                    role: 'Assistant',
+                    content: 'This better?'
+                },
+                {
+                    role: 'User',
+                    content: { content: 'input', type: 'text' }
+                },
+                { //The same condition, but false and true are switched compared to script1 as the question the assistant asks is different
+                    role: 'Condition',
+                    content: '${!script2[2].content.toUpperCase().includes("NO")}',
+                    false: 'script2',
+                    true: 'script3'
+                }
+            ])
+
+            script3 = manager.addArray('script3', [
+                {
+                    role: 'Assistant',
+                    content: 'Good to hear. Thank you for this conversation. Bye!'
+                }
+            ])
+
+            //Run
+            cs.run({
+                manager: manager, //your array manager
+                array: script1, //your main script
+                api_token: api_token, //your data foundry api token
+                resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
+                loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
+                inputElementSelector: '#input', //the HTML input element that is used by the user to give input
+                acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages 
+                delayTime: 500, //A delay after every message that can help distinguish incoming messages
+            })
+        }
+
+    </script>
+</body>
+
+</html>
