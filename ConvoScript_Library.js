@@ -49,7 +49,6 @@ const cs = {
         throw new Error(`Array with name "${name}" does not exist.`);
       }
       delete this.arrays[name];
-      console.log(`Array with name "${name}" has been removed.`);
     }
 
     //If a reference has been made to a script, this evaluates the expression (between ${...})
