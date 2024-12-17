@@ -119,18 +119,16 @@ const script1 = manager.addArray('script1', [
 
 If you want to use a certain part of the conversation for a different purpose on you page, you can specify what part to return:
 
-const script1 = manager.addArray('script1', [
-{
-role: 'User',
-content: {content: 'input', type 'text'}
-},
-{
-role: 'return',
-content: '${script1[0]}'
-}
-])
-
 ```
-
+const script1 = manager.addArray('script1', [
+    {
+    role: 'User',
+    content: {content: 'input', type 'text'}
+    },
+    {
+    role: 'return',
+    content: '${script1[0]}'
+    }
+    ])
 
 ```
