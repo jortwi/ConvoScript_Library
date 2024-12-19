@@ -6,31 +6,20 @@ Add Human-AI conversation easily to you web page!
 
 This library allows users to specify a Human-AI conversation in a simple format, that will be turned dynamically placed on the page. Multiple scripts can be created that can refer to other scripts or themselves.
 
-First, we create a script manager:
-
-`const manager = new cs.ArrayManager()`
-
-Then, we add a script:
+First, we create a conversation. Here, we need to provide different parameters: we need somewhere to place the conversation, a loading indicator, an input element, and a button - but also an API token.
 
 ```
-const script1 = manager.addArray('script1', [
-    {
-        role: 'Assistant',
-        content: 'Hi, how are you today?'
-    },
-    {
-        role: 'User',
-        content: 'I am fine, thanks.'
-    }
-])
+const convoScript = new ConvoScript({
+            api_token: api_token, //your data foundry api token
+            resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
+            loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
+            inputElementSelector: '#input', //the HTML input element that is used by the user to give input
+            acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages
+            delayTime: 500, //A delay after every message that can help distinguish incoming messages
+        })
 ```
 
-Such a script contains messages that have (at least) a role and content. On the screen, this will display as:
-
-- Assistant: Hi, how are you today?
-- User: I am fine, thanks.
-
-To achieve this, we need somewhere to place the conversation, a loading indicator, an input element, and a button:
+The elementSelectors should link to an HTML element on the page:
 
 ```
 <div id="placeResults"></div>
@@ -39,19 +28,30 @@ To achieve this, we need somewhere to place the conversation, a loading indicato
 <button hidden id="btn"></button>
 ```
 
-Then, we can start the program. Make sure you have a Data Foundry API token available.
+Then, we add a script:
 
 ```
-cs.run({
-    manager: manager, //your array manager
-    array: script1, //your main script
-    api_token: api_token, //your data foundry api token
-    resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
-    loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
-    inputElementSelector: '#input', //the HTML input element that is used by the user to give input
-    acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages
-    delayTime: 500, //A delay after every message that can help distinguish incoming messages
-    })
+const script1 = convoScript.addScript('script1', [
+    {
+        role: 'assistant',
+        content: 'Hi, how are you today?'
+    },
+    {
+        role: 'user',
+        content: 'I am fine, thanks.'
+    }
+])
+```
+
+Such a script contains messages that have (at least) a role and content. On the screen, this will display as:
+
+- assistant: Hi, how are you today?
+- user: I am fine, thanks.
+
+Then, we can start the program:
+
+```
+convoScript.run(script1)
 ```
 
 Different message types are available:
@@ -84,12 +84,12 @@ An AI request - the result of which is displayed in the screen (the 'assistant' 
 }
 ```
 
-You may want to use the user input as the prompt. To do that, we can reference the part of the array / script where a user has provided this input. Such as reference must be written in a specific format: `"${here}"`. The reference to the first message in `script1` would be: `"${script1[0]}"`, and the reference to the content of the second message in `script1` would be: `"${script1[1].content}"`. Make sure to use regular apostrophes `"`, and not backticks `\``.
+You may want to use the user input as the prompt. To do that, we can reference the part of the script where a user has provided this input. Such a reference must be written in a specific format: `"${here}"`. The reference to the first message in `script1` would be: `"${script1[0]}"`, and the reference to the content of the second message in `script1` would be: `"${script1[1].content}"`. Make sure to use regular apostrophes ", and not backticks \`.
 
 ```
-const script1 = manager.addArray('script1', [
+const script1 = convoScript.addScript('script1', [
     {
-        role: 'User',
+        role: 'user',
         content: {content: 'input', type 'text'}
     },
     {
@@ -103,9 +103,9 @@ const script1 = manager.addArray('script1', [
 It is possible to have multiple scripts, and switch to one of those depending on e.g. the user input. For that we can write a condition. If it is true, the program will run script2, otherwise it will run script3:
 
 ```
-const script1 = manager.addArray('script1', [
+const script1 = convoScript.addScript('script1', [
     {
-        role: 'User',
+        role: 'user',
         content: {content: 'input', type 'text'}
     },
     {
@@ -117,18 +117,40 @@ const script1 = manager.addArray('script1', [
 ])
 ```
 
-If you want to use a certain part of the conversation for a different purpose on you page, you can specify what part to return:
+It is possible to let a condition 'message' end the conversation. In the next example, we see that if the condition is true, end conversation ends:
 
 ```
-const script1 = manager.addArray('script1', [
+const script1 = convoScript.addScript('script1', [
     {
-    role: 'User',
-    content: {content: 'input', type 'text'}
+        role: 'user',
+        content: {content: 'input', type 'text'}
     },
     {
-    role: 'return',
-    content: '${script1[0]}'
+        role: 'condition',
+        content: '${script1[0].content.includes("yes")}',
+        true: 'end',
+        false: 'script3'
+    }
+])
+```
+
+If you want to use a certain part of the conversation for a different purpose on you page, you can do so as the `run()` function returns all scripts:
+
+```
+async function start() {
+    const script1 = convoScript.addScript('script1', [
+    {
+        role: 'user',
+        content: {content: 'input', type 'text'}
+    },
+    {
+        role: 'function',
+        content: 'textToText',
+        messages: '${script1[0]}'
     }
     ])
 
+    let res = await convoScript.run(script1)
+    console.log(res.script1[0].content) //Log the user input in script1 to the console
+}
 ```
