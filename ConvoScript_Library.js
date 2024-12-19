@@ -23,7 +23,7 @@ class ConvoScript {
     if (this.arrays[name]) {
       throw new Error(`Script with name "${name}" already exists.`);
     }
-    if (name === "end") {
+    if (name?.toLowerCase() === "end") {
       throw new Error(`Illegal script name provided: ${name}`);
     }
 
@@ -134,27 +134,28 @@ class ConvoScript {
     };
 
     //system prompt is working in very little of the functions
-    const systemPrompt = array[0].role === "system" ? array[0].content : "";
-    const startCounter = array[0].role === "system" ? 1 : 0;
+    const systemPrompt =
+      array[0].role?.toLowerCase() === "system" ? array[0].content : "";
+    const startCounter = array[0].role?.toLowerCase() === "system" ? 1 : 0;
 
     let latestImage, latestSound, latestMessage;
 
     for (let i = startCounter; i < array.length; i++) {
-      if (array[i]?.role === "function") {
+      if (array[i]?.role?.toLowerCase() === "function") {
         if (array[i]?.content === "fileSelector") {
           let response = await hashtable[array[i].content](array[i].fileType);
 
           //Not ideal solution. array[i] = { ...array[i], response: response} did work but was not useable in other functions somehow
           if (
-            array[i].fileType === "sound" ||
-            array[i].fileType === "Sound" ||
-            array[i].fileType === "audio" ||
-            array[i].fileType === "Audio"
+            array[i].fileType?.toLowerCase() === "sound" ||
+            array[i].fileType?.toLowerCase() === "Sound" ||
+            array[i].fileType?.toLowerCase() === "audio" ||
+            array[i].fileType?.toLowerCase() === "Audio"
           ) {
             latestSound = response;
           } else if (
-            array[i].fileTYpe === "Image" ||
-            array[i].fileTYpe === "image"
+            array[i].fileTYpe?.toLowerCase() === "Image" ||
+            array[i].fileTYpe?.toLowerCase() === "image"
           ) {
             latestImage = response;
           }
@@ -203,10 +204,10 @@ class ConvoScript {
               .insertAdjacentHTML("beforeend", `<p>Assistant: ${response}</p>`);
           }
         }
-      } else if (array[i].role === "condition") {
+      } else if (array[i].role?.toLowerCase() === "condition") {
         try {
           if (eval(array[i].content)) {
-            if (array[i].true === "end") {
+            if (array[i].true?.toLowerCase() === "end") {
               break;
             }
 
@@ -214,7 +215,7 @@ class ConvoScript {
 
             break;
           } else {
-            if (array[i].false === "end") {
+            if (array[i].false?.toLowerCase() === "end") {
               break;
             }
 
@@ -232,7 +233,7 @@ class ConvoScript {
           try {
             //try again without eval()
             if (array[i].content) {
-              if (array[i].true === "end") {
+              if (array[i].true?.toLowerCase() === "end") {
                 break;
               }
 
@@ -240,7 +241,7 @@ class ConvoScript {
 
               break;
             } else {
-              if (array[i].false === "end") {
+              if (array[i].false?.toLowerCase() === "end") {
                 break;
               }
 
@@ -252,7 +253,7 @@ class ConvoScript {
             try {
               //try array[i].false if the condition does not work
 
-              if (array[i].false === "end") {
+              if (array[i].false?.toLowerCase() === "end") {
                 break;
               }
 
@@ -264,9 +265,9 @@ class ConvoScript {
             }
           }
         }
-      } else if (array[i].content?.content === "input") {
+      } else if (array[i].content?.content?.toLowerCase() === "input") {
         let msg = await this.waitForUserInput(array[i].content?.type);
-        if (array[i].content?.type === "text") {
+        if (array[i].content?.type?.toLowerCase() === "text") {
           latestMessage = msg;
           document
             .querySelector(this.resultElementSelector)
@@ -276,7 +277,7 @@ class ConvoScript {
             );
           array[i] = { ...array[i], content: msg };
         }
-        if (array[i].content?.type === "image") {
+        if (array[i].content?.type?.toLowerCase() === "image") {
           latestImage = msg;
           document
             .querySelector(this.resultElementSelector)
@@ -286,8 +287,8 @@ class ConvoScript {
             );
         }
         if (
-          array[i].content?.type === "sound" ||
-          array[i].content?.type === "audio"
+          array[i].content?.type?.toLowerCase() === "sound" ||
+          array[i].content?.type?.toLowerCase() === "audio"
         ) {
           latestSound = msg;
           document
@@ -300,8 +301,6 @@ class ConvoScript {
             );
         }
         array[i] = { ...array[i], content: msg };
-      } else if (array[i].role === "return") {
-        returnValue = { ...array[i] };
       } else {
         document
           .querySelector(this.resultElementSelector)
@@ -324,7 +323,7 @@ class ConvoScript {
 
   waitForUserInput(type) {
     return new Promise((resolve) => {
-      if (type === "text") {
+      if (type?.toLowerCase() === "text") {
         document
           .querySelector(this.inputElementSelector)
           .setAttribute("type", type); //show input
@@ -344,7 +343,11 @@ class ConvoScript {
               .querySelector(this.inputElementSelector)
               .setAttribute("type", "hidden"); //remove input
           };
-      } else if (type === "image" || type === "audio" || type === "sound") {
+      } else if (
+        type?.toLowerCase() === "image" ||
+        type?.toLowerCase() === "audio" ||
+        type?.toLowerCase() === "sound"
+      ) {
         document
           .querySelector(this.acceptButtonElementSelector)
           .removeAttribute("hidden");
