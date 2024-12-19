@@ -8,6 +8,20 @@ class ConvoScript {
     acceptButtonElementSelector,
     delayTime = 100,
   }) {
+    if (
+      [
+        resultElementSelector,
+        api_token,
+        loadingElementSelector,
+        inputElementSelector,
+        acceptButtonElementSelector,
+      ].some((param) => param === undefined || param === null)
+    ) {
+      throw new Error(
+        `Not all required parameters provided: api_token: ${api_token}, resultElementSelector: ${resultElementSelector}, loadingElementSelector: ${loadingElementSelector}, inputElementSelector: ${inputElementSelector}, acceptButtonElementSelector: ${acceptButtonElementSelector}`
+      );
+    }
+
     this.arrays = {};
     this.resultElementSelector = resultElementSelector;
     this.api_token = api_token;
