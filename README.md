@@ -54,7 +54,9 @@ Then, we can start the program:
 convoScript.run(script1)
 ```
 
-Different message types are available:
+Different message types are available: regular messages, user inputs, and AI requests. In addition, two other 'messages' are available that do not show up directly in the conversation. The first is a condition: depending on if the condition is true or false, a different script will run. The second contains javascript code that will run when we arrive at this message.
+
+### Message types
 
 A regular message
 
@@ -84,6 +86,8 @@ An AI request - the result of which is displayed in the screen (the 'assistant' 
 }
 ```
 
+### User input
+
 You may want to use the user input as the prompt. To do that, we can reference the part of the script where a user has provided this input. Such a reference must be written in a specific format: `"${here}"`. The reference to the first message in `script1` would be: `"${script1[0]}"`, and the reference to the content of the second message in `script1` would be: `"${script1[1].content}"`. Make sure to use regular apostrophes ", and not backticks \`.
 
 ```
@@ -99,6 +103,49 @@ const script1 = convoScript.addScript('script1', [
     }
 ])
 ```
+
+There are different types of user inputs: `text`, `audio`, `image`, and `transcription`
+
+```
+{
+    role: 'user',
+    content: {content: 'input', type: 'text'}
+}
+```
+
+When using `audio` or `image` as input type, make sure that if you use this input the audio or image will also be processed correctly. The most common way to do that is to use the input in a function: `soundToText` for `audio` inputs, and `imageToText` for `image` inputs
+
+```
+script1 = convoScript.addScript('script1', [
+    {
+        role: 'user',
+        content: {content: 'input', type: 'audio'}
+    },
+    {
+        role: 'function',
+        content: 'soundToText',
+        prompt: '${script1[0].content}'
+    }
+])
+```
+
+The `transcription` input type will accept audio, but it will not result in audio output. Instead, it will immediately transcribe the input, and have text as output
+
+```
+script1 = convoScript.addScript('script1', [
+    {
+        role: 'user',
+        content: {content: 'input', type: 'transcription'}
+    },
+    {
+        role: 'function',
+        content: 'textToImage',
+        prompt: '${script1[0].content}'
+    }
+])
+```
+
+### Conditions
 
 It is possible to have multiple scripts, and switch to one of those depending on e.g. the user input. For that we can write a condition. If it is true, the program will run script2, otherwise it will run script3:
 
@@ -133,6 +180,25 @@ const script1 = convoScript.addScript('script1', [
     }
 ])
 ```
+
+### JavaScript Code during a conversation
+
+In some cases, you may want the conversation to affect parts of the page, other functionality, or external devices while the conversation is still in progress. In these cases, you can write a JavaScript expression using `role: "code"`. The `content` of this message is regular JavaScipt. This means we do not need to use `${}` to write expressions.
+
+```
+const script1 = convoScript.addScript('script1', [
+    {
+        role: 'user',
+        content: {content: 'input', type: 'text'}
+    },
+    {
+        role: 'code',
+        content: 'console.log("Wow! This is our first contact with the user:"); console.log(script1[0]);' //This code will be executed without directly affecting the conversation
+    }
+])
+```
+
+### After the conversation
 
 If you want to use a certain part of the conversation for a different purpose on you page, you can do so as the `run()` function returns all scripts:
 
