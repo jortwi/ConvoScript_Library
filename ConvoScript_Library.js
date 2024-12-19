@@ -130,7 +130,6 @@ class ConvoScript {
   }
 
   async run(array) {
-    console.log("starting run function");
     let manager = this;
     if (typeof array === "string") {
       array = manager.getScript(array);
@@ -157,15 +156,10 @@ class ConvoScript {
           //Not ideal solution. array[i] = { ...array[i], response: response} did work but was not useable in other functions somehow
           if (
             array[i].fileType?.toLowerCase() === "sound" ||
-            array[i].fileType?.toLowerCase() === "Sound" ||
-            array[i].fileType?.toLowerCase() === "audio" ||
-            array[i].fileType?.toLowerCase() === "Audio"
+            array[i].fileType?.toLowerCase() === "audio"
           ) {
             latestSound = response;
-          } else if (
-            array[i].fileTYpe?.toLowerCase() === "Image" ||
-            array[i].fileTYpe?.toLowerCase() === "image"
-          ) {
+          } else if (array[i].fileTYpe?.toLowerCase() === "image") {
             latestImage = response;
           }
         } else {
@@ -260,11 +254,9 @@ class ConvoScript {
             console.error("An issue occurred in your condition");
             try {
               //try array[i].false if the condition does not work
-
               if (array[i].false?.toLowerCase() === "end") {
                 break;
               }
-
               await this.run(array[i].false);
               break;
             } catch (err) {
@@ -275,7 +267,10 @@ class ConvoScript {
         }
       } else if (array[i].content?.content?.toLowerCase() === "input") {
         let msg = await this.waitForUserInput(array[i].content?.type);
-        if (array[i].content?.type?.toLowerCase() === "text") {
+        if (
+          array[i].content?.type?.toLowerCase() === "text" ||
+          array[i].content?.type?.toLowerCase() === "transcription"
+        ) {
           latestMessage = msg;
           document
             .querySelector(this.resultElementSelector)
@@ -309,6 +304,15 @@ class ConvoScript {
             );
         }
         array[i] = { ...array[i], content: msg };
+      } else if (array[i].role?.toLowerCase() === "code") {
+        try {
+          eval(array[i].content);
+        } catch (err) {
+          console.error(
+            "There is a problem with the content of your code-message:",
+            err
+          );
+        }
       } else {
         document
           .querySelector(this.resultElementSelector)
@@ -340,9 +344,6 @@ class ConvoScript {
           .removeAttribute("hidden"); //show button
         document.querySelector(this.acceptButtonElementSelector).onclick =
           () => {
-            console.log(
-              document.querySelector(this.inputElementSelector).value
-            );
             resolve(document.querySelector(this.inputElementSelector).value); //resolve
             document
               .querySelector(this.acceptButtonElementSelector)
@@ -359,10 +360,51 @@ class ConvoScript {
         document
           .querySelector(this.acceptButtonElementSelector)
           .removeAttribute("hidden");
+        document.querySelector(this.acceptButtonElementSelector).innerHTML =
+          "Upload";
         document.querySelector(this.acceptButtonElementSelector).onclick =
-          async function () {
+          async () => {
             let file = await foundry.fileSelector(type);
+            if (type?.toLowerCase() !== "image") {
+              try {
+                file = this.processAudioFile(file);
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
             resolve(file);
+            document
+              .querySelector(this.acceptButtonElementSelector)
+              .setAttribute("hidden", "");
+          };
+      } else if (type?.toLowerCase() === "transcription") {
+        this.initializeMicrophone();
+        document
+          .querySelector(this.acceptButtonElementSelector)
+          .removeAttribute("hidden");
+        document.querySelector(this.acceptButtonElementSelector).innerHTML =
+          "Hold to record";
+        document.querySelector(this.acceptButtonElementSelector).ontouchstart =
+          async () => {
+            foundry.transcribeRecording({ api_token });
+          };
+        document.querySelector(this.acceptButtonElementSelector).onmousedown =
+          async () => {
+            foundry.transcribeRecording({ api_token });
+          };
+        document.querySelector(this.acceptButtonElementSelector).ontouchend =
+          async () => {
+            let transcription = await foundry.stopRec({ api_token });
+            resolve(transcription);
+            document
+              .querySelector(this.acceptButtonElementSelector)
+              .setAttribute("hidden", "");
+          };
+        document.querySelector(this.acceptButtonElementSelector).onmouseup =
+          async () => {
+            let transcription = await foundry.stopRec({ api_token });
+            resolve(transcription);
             document
               .querySelector(this.acceptButtonElementSelector)
               .setAttribute("hidden", "");
@@ -371,7 +413,52 @@ class ConvoScript {
     });
   }
 
+  //Capitalize the first letter of input
   addCap(input) {
     return input.charAt(0).toUpperCase() + input.slice(1);
+  }
+
+  //Add RecordRTC and ask for microphone access at the right moment
+  initializeMicrophone(logging = false) {
+    if (typeof RecordRTC !== "undefined") {
+      if (logging) {
+        console.log("RecordRTC is already loaded.");
+      }
+    } else {
+      if (logging) {
+        console.log("RecordRTC is not loaded, adding script to the page.");
+      }
+      //Create a script element to load RecordRTC from CDN
+      var script = document.createElement("script");
+      script.src = "https://cdn.webrtc-experiment.com/RecordRTC.js";
+      script.async = true;
+
+      //Set up callback when the script is loaded
+      script.onload = function () {
+        if (logging) {
+          console.log("RecordRTC has been loaded.");
+        }
+      };
+
+      //Append script to the head of the document
+      document.head.appendChild(script);
+    }
+    navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+  }
+
+  //Function to process incoming or recorded audio file to be able to be played by the user
+  processAudioFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        resolve(e.target.result);
+      };
+      reader.onerror = function (e) {
+        reject("Error reading file");
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
