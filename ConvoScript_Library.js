@@ -133,14 +133,9 @@ class ConvoScript {
       // models: foundry.models,
     };
 
-    //system prompt is working in very little of the functions
-    const systemPrompt =
-      array[0].role?.toLowerCase() === "system" ? array[0].content : "";
-    const startCounter = array[0].role?.toLowerCase() === "system" ? 1 : 0;
-
     let latestImage, latestSound, latestMessage;
 
-    for (let i = startCounter; i < array.length; i++) {
+    for (let i = 0; i < array.length; i++) {
       if (array[i]?.role?.toLowerCase() === "function") {
         if (array[i]?.content === "fileSelector") {
           let response = await hashtable[array[i].content](array[i].fileType);
@@ -168,7 +163,6 @@ class ConvoScript {
             image: latestImage,
             file: latestSound,
             prompt: latestMessage,
-            systemPrompt, //only works in imageToText
             logging: false,
             ...array[i],
           });
