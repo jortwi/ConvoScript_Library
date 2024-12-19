@@ -28,44 +28,43 @@
     <script>
         const api_token = "df-abc123...=";
 
-        //Create array Manager
-        const manager = new cs.ArrayManager()
+        //Create conversation
+        const convoScript = new ConvoScript({
+            api_token: api_token, //your data foundry api token
+            resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
+            loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
+            inputElementSelector: '#input', //the HTML input element that is used by the user to give input
+            acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages 
+            delayTime: 500, //A delay after every message that can help distinguish incoming messages
+        })
 
         //Async function
         async function start() {
             //Remove arrays as they may have changed in a previous run
-            manager.arrays = {}
+            convoScript.arrays = {}
 
-            //Add array to array registry
-            script1 = manager.addArray('script1', [
+            //Add script to array conversation
+            script1 = convoScript.addScript('script1', [
                 { //First message in conversation
-                    role: 'Assistant',
+                    role: 'assistant',
                     content: 'Hi, tell me about a recent dream you had!'
                 },
                 { //Allow the user to respond
-                    role: 'User',
+                    role: 'user',
                     content: { type: 'text', content: 'input' }
                 },
-                { //Define what part of the conversation should be returned. This is then used as an OOCSI message
-                    role: 'return',
-                    content: '${script1[1].content}'
-                }
 
             ])
 
             //Run
-            let oocsiMessage = await cs.run({
-                manager: manager, //your array manager
-                array: script1, //your main script
-                api_token: api_token, //your data foundry api token
-                resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
-                loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
-                inputElementSelector: '#input', //the HTML input element that is used by the user to give input
-                acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages 
-                delayTime: 500, //A delay after every message that can help distinguish incoming messages
-            })
+            let res = await convoScript.run(script1)
+
+            //Retrieve user input
+            let OOCSImessage = res.script1[1].content
+
             //Send the user input through OOCSI
-            OOCSI.send('OOCSIChannelName', { message: oocsiMessage.content })
+            OOCSI.send('OOCSIChannelName', { message: OOCSImessage })
+            console.log('Message sent to OOCSI:', OOCSImessage)
         }
 
         //Connect OOCSI

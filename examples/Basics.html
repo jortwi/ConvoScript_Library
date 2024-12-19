@@ -20,100 +20,121 @@
         <div id="placeResults"></div>
         <progress hidden id="load"></progress>
         <input id="input" type="hidden"></input>
-        <button hidden id="btn"></button>
+        <button hidden id="btn">SEND</button>
     </main>
 
     <script>
         const api_token = "df-abc123...=";
 
-        //Create array Manager
-        const manager = new cs.ArrayManager()
+        //Create conversation
+        const convoScript = new ConvoScript({
+            api_token: api_token, //your data foundry api token
+            resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
+            loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
+            inputElementSelector: '#input', //the HTML input element that is used by the user to give input
+            acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages 
+            delayTime: 500, //A delay after every message that can help distinguish incoming messages
+        })
 
-        function start() {
+        let s1 = [
+            { //First message in conversation
+                role: 'assistant',
+                content: 'Hi, tell me about a recent dream you had!'
+            },
+            { //Allow the user to respond
+                role: 'user',
+                content: { type: 'text', content: 'input' }
+            },
+            { //Create AI response based on the first two messages (text-to-text)
+                role: 'function',
+                content: 'textToText',
+                messages: '${script1.slice(0,2)}'
+            },
+            { //Create a scripted user message
+                role: 'user',
+                content: 'Can you create an image based on my dream?'
+            },
+            { //Generate image based on user input in the beginning of the conversation
+                role: 'function',
+                content: 'textToImage',
+                prompt: '${script1[1].content}'
+            },
+            {
+                role: 'assistant',
+                content: 'Should we re-do this image?'
+            },
+            {
+                role: 'user',
+                content: { content: 'input', type: 'text' }
+            },
+            {
+                role: 'condition',
+                content: '${!script1[6].content.toLowerCase().includes("no")}',
+                true: 'script2',
+                false: 'script3'
+            },
+
+        ]
+        let s2 = [
+            {
+                role: 'function',
+                content: 'textToImage',
+                prompt: '${script1[1].content}'
+            },
+            {
+                role: 'assistant',
+                content: 'This better?'
+            },
+            {
+                role: 'user',
+                content: { content: 'input', type: 'text' }
+            },
+            {   //The same condition, but if the new image is not good enought yet, we end the conversation. We do this because we want to retry, but we do not want
+                //...to create an infinite loop by running script2 again. When the function has ended, we check this condition again and run script2 again if needed
+                role: 'condition',
+                content: '${!script2[2].content.toLowerCase().includes("no")}',
+                false: 'end', //if false, stop the conversation
+                true: 'script3' //if true, run script3
+            }
+        ]
+        let s3 = [
+            {
+                role: 'assistant',
+                content: 'Good to hear. Thank you for this conversation. Bye!'
+            }
+        ]
+
+        async function start() {
             //Remove arrays as they may have changed in a previous run
-            manager.arrays = {}
+            convoScript.arrays = {}
 
-            //Add array to array registry
-            script1 = manager.addArray('script1', [
-                { //First message in conversation
-                    role: 'Assistant',
-                    content: 'Hi, tell me about a recent dream you had!'
-                },
-                { //Allow the user to respond
-                    role: 'User',
-                    content: { type: 'text', content: 'input' }
-                },
-                { //Create AI response based on the first two messages (text-to-text)
-                    role: 'function',
-                    content: 'textToText',
-                    messages: '${script1.slice(0,2)}'
-                },
-                { //Create a scripted user message
-                    role: 'User',
-                    content: 'Can you create an image based on my dream?'
-                },
-                { //Generate image based on user input in the beginning of the conversation
-                    role: 'function',
-                    content: 'textToImage',
-                    prompt: '${script1[1].content}'
-                },
-                {
-                    role: 'Assistant',
-                    content: 'Should we re-do this image?'
-                },
-                {
-                    role: 'User',
-                    content: { content: 'input', type: 'text' }
-                },
-                {
-                    role: 'condition',
-                    content: '${!script1[6].content.toUpperCase().includes("NO")}',
-                    true: 'script2',
-                    false: 'script3'
-                },
+            //Add array to ConvoScript instance
+            script1 = convoScript.addScript('script1', s1)
+            script2 = convoScript.addScript('script2', s2)
+            script3 = convoScript.addScript('script3', s3)
 
-            ])
+            let res = await convoScript.run(script1)
 
-            script2 = manager.addArray('script2', [
-                {
-                    role: 'Function',
-                    content: 'textToImage',
-                    prompt: '${script1[1].content}'
-                },
-                {
-                    role: 'Assistant',
-                    content: 'This better?'
-                },
-                {
-                    role: 'User',
-                    content: { content: 'input', type: 'text' }
-                },
-                { //The same condition, but false and true are switched compared to script1 as the question the assistant asks is different
-                    role: 'Condition',
-                    content: '${!script2[2].content.toUpperCase().includes("NO")}',
-                    false: 'script2',
-                    true: 'script3'
-                }
-            ])
+            //check if the user was satisfied with the image. Otherwise, clear script2 and try again
+            //we cannot redirect the user from script2 to script2 as script2 already contains user input and function results.
+            if (res.script2[2].content.includes("no")) {
+                await continueConversation(res)
+            }
 
-            script3 = manager.addArray('script3', [
-                {
-                    role: 'Assistant',
-                    content: 'Good to hear. Thank you for this conversation. Bye!'
-                }
-            ])
+        }
 
-            //Run
-            cs.run({
-                manager: manager, //your array manager
-                array: script1, //your main script
-                api_token: api_token, //your data foundry api token
-                resultElementSelector: '#placeResults', //the HTML element where the conversation will be placed
-                loadingElementSelector: '#load', //the HTML element that shows a loading icon when waiting for AI requests
-                inputElementSelector: '#input', //the HTML input element that is used by the user to give input
-                acceptButtonElementSelector: '#btn', //the HTML button that is used to send user messages 
-                delayTime: 500, //A delay after every message that can help distinguish incoming messages
-            })
+        async function continueConversation(inp) {
+            //remove only script2, as we may still need the information in the other scripts 
+            convoScript.removeScript('script2')
+            //add a fresh script2
+            script2 = convoScript.addScript('script2', JSON.parse(JSON.stringify(s2)))
+            //run script2
+            let res = await convoScript.run(script2)
+            //check again if the user was satisfied, otherwise try again
+            if (res.script2[2].content.includes("no")) {
+                await continueConversation(res)
+            }
+
         }
 
     </script>
