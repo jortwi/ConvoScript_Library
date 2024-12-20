@@ -33,7 +33,7 @@ The elementSelectors should link to an HTML element on the page:
 <div id="placeResults"></div>
 <progress hidden id="load"></progress>
 <input id="input" type="hidden"></input>
-<button hidden id="btn"></button>
+<button hidden id="btn">Send</button>
 ```
 
 Then, we add a script:
