@@ -145,11 +145,13 @@ class ConvoScript {
       textToText: foundry.textToText,
       textToImage: foundry.textToImage,
       textToSound: foundry.textToSound,
-      soundToText: foundry.soundToText, //currently only available with type='file'
-      // stopRec: foundry.stopRec,
+      soundToText: foundry.soundToText,
+      transcribeRecording: foundry.transcribeRecording,
+      transcribeFile: foundry.transcribeFile,
+      stopRec: foundry.stopRec,
       imageToText: foundry.imageToText,
       fileSelector: foundry.fileSelector,
-      // models: foundry.models,
+      models: foundry.models,
     };
 
     let latestImage, latestSound, latestMessage;
