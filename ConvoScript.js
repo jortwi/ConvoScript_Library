@@ -112,6 +112,12 @@ class ConvoScript {
         }
       }
       return resolvedObject;
+    } else if (
+      typeof value === "string" &&
+      value.startsWith("${") &&
+      value.endsWith("}")
+    ) {
+      value = this.evaluateExpression(value.slice(2, -1));
     }
     return value;
   }
@@ -265,7 +271,9 @@ class ConvoScript {
             }
           }
         }
-      } else if (array[i].content?.content?.toLowerCase() === "input") {
+      } else if (
+        array[i].content?.content?.toString?.().toLowerCase?.() === "input"
+      ) {
         let msg = await this.waitForUserInput(array[i].content?.type);
         if (
           array[i].content?.type?.toLowerCase() === "text" ||
@@ -351,6 +359,7 @@ class ConvoScript {
             document
               .querySelector(this.inputElementSelector)
               .setAttribute("type", "hidden"); //remove input
+            document.querySelector(this.inputElementSelector).value = ""; //clear input
           };
       } else if (
         type?.toLowerCase() === "image" ||
