@@ -7,9 +7,13 @@
     <!-- AI Foundry Library -->
     <script src="../AI_Foundry_Library.js"></script>
     <!-- ConvoScript Library -->
-    <script src="../ConvoScript_Library.js"></script>
+    <script src="../ConvoScript.js"></script>
     <!-- PicoCSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <!-- REQUIREMENTS -->
+    <!-- Make sure that you have the AI Foundry Library and ConvoScript installed and at the correct location -->
+    <!-- Also, replace the API token below with your own Data Foundry API Key -->
+
 </head>
 
 <body>
@@ -36,82 +40,81 @@
             delayTime: 500, //A delay after every message that can help distinguish incoming messages
         })
 
-        let s1 = [
-            { //First message in conversation
-                role: 'assistant',
-                content: 'Hi, tell me about a recent dream you had!'
-            },
-            { //Allow the user to respond
-                role: 'user',
-                content: { type: 'text', content: 'input' }
-            },
-            { //Create AI response based on the first two messages (text-to-text)
-                role: 'function',
-                content: 'textToText',
-                messages: '${script1.slice(0,2)}'
-            },
-            { //Create a scripted user message
-                role: 'user',
-                content: 'Can you create an image based on my dream?'
-            },
-            { //Generate image based on user input in the beginning of the conversation
-                role: 'function',
-                content: 'textToImage',
-                prompt: '${script1[1].content}'
-            },
-            {
-                role: 'assistant',
-                content: 'Should we re-do this image?'
-            },
-            {
-                role: 'user',
-                content: { content: 'input', type: 'text' }
-            },
-            {
-                role: 'condition',
-                content: '${!script1[6].content.toLowerCase().includes("no")}',
-                true: 'script2',
-                false: 'script3'
-            },
+        let script1, script2, script3
 
-        ]
-        let s2 = [
-            {
-                role: 'function',
-                content: 'textToImage',
-                prompt: '${script1[1].content}'
-            },
-            {
-                role: 'assistant',
-                content: 'This better?'
-            },
-            {
-                role: 'user',
-                content: { content: 'input', type: 'text' }
-            },
-            {   //The same condition, but if the new image is not good enought yet, we end the conversation. We do this because we want to retry, but we do not want
-                //...to create an infinite loop by running script2 again. When the function has ended, we check this condition again and run script2 again if needed
-                role: 'condition',
-                content: '${!script2[2].content.toLowerCase().includes("no")}',
-                false: 'end', //if false, stop the conversation
-                true: 'script3' //if true, run script3
-            }
-        ]
-        let s3 = [
-            {
-                role: 'assistant',
-                content: 'Good to hear. Thank you for this conversation. Bye!'
-            }
-        ]
 
         async function start() {
             //Remove arrays as they may have changed in a previous run
             convoScript.arrays = {}
 
             //Add array to ConvoScript instance
-            script1 = convoScript.addScript('script1', s1)
-            script2 = convoScript.addScript('script2', s2)
-            script3 = convoScript.addScript('script3', s3)
+            script1 = convoScript.addScript('script1', [
+                { //First message in conversation
+                    role: 'assistant',
+                    content: 'Hi, tell me about a recent dream you had!'
+                },
+                { //Allow the user to respond
+                    role: 'user',
+                    content: { type: 'text', content: 'input' }
+                },
+                { //Create AI response based on the first two messages (text-to-text)
+                    role: 'function',
+                    content: 'textToText',
+                    messages: '${script1.slice(0,2)}' //'messages' contains the information you send to AI in a specific format. For a simpler format, you could also use 'prompt: 'Hi, can you tell me about...''
+                },
+                { //Create a scripted user message
+                    role: 'user',
+                    content: 'Can you create an image based on my dream?'
+                },
+                { //Generate image based on user input in the beginning of the conversation
+                    role: 'function',
+                    content: 'textToImage',
+                    prompt: '${script1[1].content}'
+                },
+                {
+                    role: 'assistant',
+                    content: 'Should we re-do this image?'
+                },
+                {
+                    role: 'user',
+                    content: { content: 'input', type: 'text' }
+                },
+                {
+                    role: 'condition',
+                    content: '${!script1[6].content.toLowerCase().includes("no")}', //This checks if the content of the 7th message includes the word 'no'
+                    true: 'script2', //When the condition (specified in 'content: ...') is true, this script will run
+                    false: 'script3' //When the condition is false, this script will run
+                },
+
+            ])
+            script2 = convoScript.addScript('script2', [
+                {
+                    role: 'function',
+                    content: 'textToImage',
+                    prompt: '${script1[1].content}'
+                },
+                {
+                    role: 'assistant',
+                    content: 'This better?'
+                },
+                {
+                    role: 'user',
+                    content: { content: 'input', type: 'text' }
+                },
+                {   //The same condition, but if the new image is not good enought yet, we end the conversation. We do this because we want to retry, but we do not want
+                    //...to create an infinite loop by running script2 again. When the function has ended, we check this condition again and run script2 again if needed
+                    role: 'condition',
+                    content: '${!script2[2].content.toLowerCase().includes("no")}',
+                    false: 'end', //if false, stop the conversation
+                    true: 'script3' //if true, run script3
+                }
+            ])
+            script3 = convoScript.addScript('script3', [
+                {
+                    role: 'assistant',
+                    content: 'Good to hear. Thank you for this conversation. Bye!'
+                }
+            ])
 
             let res = await convoScript.run(script1)
 
@@ -127,7 +130,28 @@
             //remove only script2, as we may still need the information in the other scripts 
             convoScript.removeScript('script2')
             //add a fresh script2
-            script2 = convoScript.addScript('script2', JSON.parse(JSON.stringify(s2)))
+            script2 = convoScript.addScript('script2', [
+                {
+                    role: 'function',
+                    content: 'textToImage',
+                    prompt: '${script1[1].content}'
+                },
+                {
+                    role: 'assistant',
+                    content: 'This better?'
+                },
+                {
+                    role: 'user',
+                    content: { content: 'input', type: 'text' }
+                },
+                {   //The same condition, but if the new image is not good enought yet, we end the conversation. We do this because we want to retry, but we do not want
+                    //...to create an infinite loop by running script2 again. When the function has ended, we check this condition again and run script2 again if needed
+                    role: 'condition',
+                    content: '${!script2[2].content.toLowerCase().includes("no")}',
+                    false: 'end', //if false, stop the conversation
+                    true: 'script3' //if true, run script3
+                }
+            ])
             //run script2
             let res = await convoScript.run(script2)
             //check again if the user was satisfied, otherwise try again

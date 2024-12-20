@@ -7,9 +7,13 @@
     <!-- AI Foundry Library -->
     <script src="../AI_Foundry_Library.js"></script>
     <!-- ConvoScript Library -->
-    <script src="../ConvoScript_Library.js"></script>
+    <script src="../ConvoScript.js"></script>
     <!-- PicoCSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <!-- REQUIREMENTS -->
+    <!-- Make sure that you have the AI Foundry Library and ConvoScript installed and at the correct location -->
+    <!-- Also, replace the API token below with your own Data Foundry API Key -->
+
 </head>
 
 <body>
@@ -36,56 +40,53 @@
             delayTime: 500, //A delay after every message that can help distinguish incoming messages
         })
 
-        let s1 = [
-            {
-                role: 'assistant',
-                content: 'Hi, please show me your latest image!'
-            },
-            {
-                role: 'user',
-                content: { content: 'input', type: 'image' }
-            },
-            {
-                role: 'assistant',
-                content: 'I will write a short poem about this image. Here goes:'
-            },
-            {
-                role: 'function',
-                content: 'imageToText',
-                prompt: 'Write a poem about this image',
-                image: '${script1[1].content}'
-            },
-            {
-                role: 'assistant',
-                content: 'Did you like that? You can tell me using your voice!'
-            },
-            {
-                role: 'user',
-                content: { content: 'input', type: 'transcription' }
-            },
-            {
-                role: 'assistant',
-                content: 'Okay! Let me make an image based on what you just said. First, I will think of three themes that relate to your words'
-            },
-            {
-                role: 'function',
-                content: 'textToText',
-                messages: [{ role: 'user', content: 'Please write THREE words that relate to the next message.' }, { role: 'user', content: '${script1[5].content}' }]
-            },
-            {
-                role: 'function',
-                content: 'textToImage',
-                prompt: '${script1[7].response}'
-            }
-        ]
-
-
         async function start() {
             //Remove arrays as they may have changed in a previous run
             convoScript.arrays = {}
 
             //Add array to ConvoScript instance
-            script1 = convoScript.addScript('script1', s1)
+            script1 = convoScript.addScript('script1', [
+                {
+                    role: 'assistant',
+                    content: 'Hi, please show me your latest image!'
+                },
+                {
+                    role: 'user',
+                    content: { content: 'input', type: 'image' }
+                },
+                {
+                    role: 'assistant',
+                    content: 'I will write a short poem about this image. Here goes:'
+                },
+                {
+                    role: 'function',
+                    content: 'imageToText',
+                    prompt: 'Write a poem about this image',
+                    image: '${script1[1].content}'
+                },
+                {
+                    role: 'assistant',
+                    content: 'Did you like that? You can tell me using your voice!'
+                },
+                {
+                    role: 'user',
+                    content: { content: 'input', type: 'transcription' }
+                },
+                {
+                    role: 'assistant',
+                    content: 'Okay! Let me make an image based on what you just said. First, I will think of three themes that relate to your words'
+                },
+                {
+                    role: 'function',
+                    content: 'textToText',
+                    messages: [{ role: 'user', content: 'Please write THREE words that relate to the next message.' }, "${script1[5]}"]
+                },
+                {
+                    role: 'function',
+                    content: 'textToImage',
+                    prompt: '${script1[7].response}'
+                }
+            ])
 
             let res = await convoScript.run(script1)
             console.log(res)
