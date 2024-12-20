@@ -245,3 +245,4 @@ async function start() {
 - If you find issues in sound transcription, it could be because the audio file you are transcribing is too large
 - If you are using a condition, make sure you provide a script to run for both the condition being true and false. If you need only one, you can set the other to 'end' (`true: "end"`). This will stop the conversation if the condition is true.
 - if you are using the 'code' role (`role: 'code'`), make sure the provided JavaScript code is valid. If you want to refer to one of the scripts, do not use the `"${script1}"` notation, but instead directly refer to the script `script1`
+- If your AI request seem to 'know' more information that you provide them, it could be because these request automatically receive the latest sound, image, and message as input, which will only affect the result if you provide no other input (and if the function can accept this type of input e.g. soundToText does not accept images as input)
